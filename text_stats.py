@@ -1,36 +1,31 @@
 #!/usr/bin/env python3
-"""Text statistics — word count, readability, etc. Zero deps."""
-import re
+"""Text statistics calculator."""
+import sys, re, json
+
 def analyze(text):
-    words=text.split(); sents=re.split(r'[.!?]+',text); sents=[s for s in sents if s.strip()]
-    chars=len(text); wc=len(words); sc=len(sents)
-    avg_wl=sum(len(w.strip('.,!?;:')) for w in words)/wc if wc else 0
-    avg_sl=wc/sc if sc else 0
-    # Flesch-Kincaid
-    syllables=sum(count_syllables(w) for w in words)
-    fk=0.39*avg_sl+11.8*(syllables/wc)-15.59 if wc else 0
-    return {"chars":chars,"words":wc,"sentences":sc,"avg_word_len":round(avg_wl,1),
-            "avg_sent_len":round(avg_sl,1),"syllables":syllables,"fk_grade":round(fk,1)}
+    chars = len(text)
+    chars_no_space = len(text.replace(' ', '').replace('\n', '').replace('\t', ''))
+    words = len(text.split())
+    lines = text.count('\n') + (1 if text else 0)
+    sentences = len(re.findall(r'[.!?]+', text))
+    paragraphs = len([p for p in text.split('\n\n') if p.strip()])
+    reading_min = round(words / 238, 1)
+    return {'characters': chars, 'characters_no_spaces': chars_no_space, 'words': words,
+            'lines': lines, 'sentences': sentences, 'paragraphs': paragraphs,
+            'reading_minutes': reading_min}
 
-def count_syllables(word):
-    word=word.lower().strip(".,!?;:")
-    if not word: return 0
-    vowels="aeiou"; count=0; prev=False
-    for c in word:
-        if c in vowels:
-            if not prev: count+=1
-            prev=True
-        else: prev=False
-    if word.endswith('e') and count>1: count-=1
-    return max(1,count)
+def main():
+    if len(sys.argv) > 1 and sys.argv[1] != '-':
+        with open(sys.argv[1]) as f: text = f.read()
+    else:
+        text = sys.stdin.read()
+    fmt = '--json' in sys.argv
+    stats = analyze(text)
+    if fmt:
+        print(json.dumps(stats, indent=2))
+    else:
+        for k, v in stats.items():
+            print(f"{k.replace('_', ' ').title():>25}: {v}")
 
-def test():
-    r=analyze("The quick brown fox jumps over the lazy dog. It was a good day.")
-    assert r["words"]==13; assert r["sentences"]==2
-    assert r["avg_word_len"]>2
-    print(r); print("All tests passed!")
-if __name__=="__main__":
-    import sys
-    if len(sys.argv)>1:
-        with open(sys.argv[1]) as f: print(analyze(f.read()))
-    else: test()
+if __name__ == '__main__':
+    main()
