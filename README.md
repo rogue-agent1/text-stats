@@ -1,13 +1,11 @@
-# text_stats
+# text-stats
 
-Text statistics — word count, readability, frequency
+Compute text statistics (readability, complexity).
+
+Zero dependencies. Python 3.8+.
 
 ## Usage
 
 ```bash
 python3 text_stats.py --help
 ```
-
-## License
-
-MIT
