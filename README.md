@@ -1,6 +1,6 @@
 # text-stats
 
-Text statistics (words, sentences, readability)
+Text Statistics Analyzer. Zero-dependency, single-file Python CLI.
 
 ## Usage
 
@@ -8,7 +8,6 @@ Text statistics (words, sentences, readability)
 python3 text_stats.py --help
 ```
 
-## Features
+## License
 
-- Zero dependencies (Python 3.8+)
-- Single file implementation
+MIT
