@@ -1,30 +1,37 @@
 #!/usr/bin/env python3
-"""text_stats - Compute text statistics and readability metrics."""
-import sys, re, math
+"""text_stats - Text statistics and readability metrics."""
+import sys, argparse, json, re, math
 
-def syllables(word):
+def syllable_count(word):
     word = word.lower().rstrip("e")
-    count = len(re.findall(r"[aeiouy]+", word))
+    vowels = "aeiou"
+    count = 0; prev_vowel = False
+    for ch in word:
+        is_vowel = ch in vowels
+        if is_vowel and not prev_vowel: count += 1
+        prev_vowel = is_vowel
     return max(1, count)
 
 def analyze(text):
-    sentences = [s.strip() for s in re.split(r"[.!?]+", text) if s.strip()]
-    words = text.split()
-    chars = sum(len(w) for w in words)
-    sylls = sum(syllables(w) for w in words)
-    n_sent = max(1, len(sentences))
-    n_words = max(1, len(words))
-    # Flesch-Kincaid
-    fk_grade = 0.39 * (n_words/n_sent) + 11.8 * (sylls/n_words) - 15.59
-    fk_ease = 206.835 - 1.015 * (n_words/n_sent) - 84.6 * (sylls/n_words)
-    return {
-        "chars": len(text), "words": n_words, "sentences": n_sent,
-        "avg_word_len": chars/n_words, "avg_sent_len": n_words/n_sent,
-        "syllables": sylls, "fk_grade": fk_grade, "fk_ease": fk_ease
-    }
+    words = re.findall(r"\b\w+\b", text)
+    sentences = re.split(r"[.!?]+", text)
+    sentences = [s.strip() for s in sentences if s.strip()]
+    chars = len(text)
+    word_count = len(words)
+    sent_count = max(1, len(sentences))
+    syllables = sum(syllable_count(w) for w in words)
+    avg_word_len = sum(len(w) for w in words) / max(1, word_count)
+    flesch = 206.835 - 1.015*(word_count/sent_count) - 84.6*(syllables/max(1,word_count))
+    unique = len(set(w.lower() for w in words))
+    return {"characters": chars, "words": word_count, "sentences": sent_count, "syllables": syllables, "unique_words": unique, "avg_word_length": round(avg_word_len, 2), "lexical_diversity": round(unique/max(1,word_count), 3), "flesch_reading_ease": round(flesch, 1), "words_per_sentence": round(word_count/sent_count, 1)}
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2: print("Usage: text_stats <file>"); sys.exit(1)
-    with open(sys.argv[1]) as f: stats = analyze(f.read())
-    for k, v in stats.items():
-        print(f"{k:20s}: {v:.2f}" if isinstance(v, float) else f"{k:20s}: {v}")
+def main():
+    p = argparse.ArgumentParser(description="Text statistics")
+    p.add_argument("input", help="Text or @filename")
+    args = p.parse_args()
+    text = args.input
+    if text.startswith("@"):
+        with open(text[1:]) as f: text = f.read()
+    print(json.dumps(analyze(text), indent=2))
+
+if __name__ == "__main__": main()
